@@ -430,7 +430,6 @@
             { titulo: "4. Execução e Conexão Mente-Músculo", texto: "Priorize a técnica perfeita em cada exercício. Sinta o músculo alvo contraindo e alongando para maximizar o estímulo." }
         ];
 
-        // NOVAS CONSTANTES PARA A LÓGICA
         const LIMITES_TREINO_TOTAL = {
             "Iniciante": { min: 4, max: 6 },
             "Intermediario": { min: 6, max: 7 },
@@ -500,79 +499,102 @@
         function gerarTreinoAutomatico(dificuldade, grupos_musculares) {
             let exerciciosSelecionados = [];
             const isTreinoCombinado = grupos_musculares.length > 1;
-            let totalExercicios = 0;
             const limitesNivel = LIMITES_TREINO_TOTAL[dificuldade];
             
-            // Garantir que a seleção de grupos especiais/acessórios ocorra no final
             grupos_musculares = sortGruposMusculares(grupos_musculares);
-
+            
             for (const grupo of grupos_musculares) {
-                if (totalExercicios >= limitesNivel.max) {
-                    break;
-                }
-                
+                if (exerciciosSelecionados.length >= limitesNivel.max) break;
+
                 let exerciciosDoGrupo = getExerciciosParaGrupo(grupo, dificuldade);
                 if (exerciciosDoGrupo.length === 0) continue;
 
                 let numParaAdicionar;
-
                 if (LIMITES_ACESSORIOS[grupo]) {
                     numParaAdicionar = LIMITES_ACESSORIOS[grupo];
                 } else if (isTreinoCombinado) {
-                    // Lógica para treino combinado
                     const isPrincipal = grupos_musculares.indexOf(grupo) === 0;
                     const limites = isPrincipal ? LIMITES_COMBINADOS.principal : LIMITES_COMBINADOS.complementar;
-                    numParaAdicionar = Math.min(limites.max, Math.max(limites.min, 
-                                        Math.floor(Math.random() * (limites.max - limites.min + 1)) + limites.min));
+                    numParaAdicionar = Math.min(limites.max, Math.max(limites.min, Math.floor(Math.random() * (limites.max - limites.min + 1)) + limites.min));
                 } else {
-                    // Lógica para treino com foco principal
                     const subGrupos = [...new Set(exerciciosDoGrupo.map(ex => ex.subGrupo))].filter(Boolean);
-                    if (subGrupos.length > 0 && subGrupos.length > 1) {
-                         // Se tiver subgrupos, garanta que todos sejam representados
-                        numParaAdicionar = subGrupos.length + (dificuldade === "Iniciante" ? 1 : 2);
+                    if (subGrupos.length > 0) {
+                        numParaAdicionar = subGrupos.length + (dificuldade === "Iniciante" ? 0 : 1);
                     } else {
                         numParaAdicionar = Math.min(exerciciosDoGrupo.length, 
-                                            Math.max(LIMITES_TREINO_TOTAL[dificuldade].min, 
-                                            Math.floor(Math.random() * (LIMITES_TREINO_TOTAL[dificuldade].max - LIMITES_TREINO_TOTAL[dificuldade].min + 1)) + LIMITES_TREINO_TOTAL[dificuldade].min));
+                                            Math.max(limitesNivel.min, 
+                                            Math.floor(Math.random() * (limitesNivel.max - limitesNivel.min + 1)) + limitesNivel.min));
                     }
                 }
+                
+                // Filtra exercícios que já foram selecionados ou que são variações do mesmo movimento
+                const exerciciosJaUsados = new Set(exerciciosSelecionados.map(ex => ex.nome));
+                const exerciciosDisponiveis = exerciciosDoGrupo.filter(ex => !exerciciosJaUsados.has(ex.nome));
 
                 let exerciciosAdicionados = [];
-                let estilosDoGrupo = [...new Set(exerciciosDoGrupo.map(ex => ex.estilo))];
-                let subGruposDoGrupo = [...new Set(exerciciosDoGrupo.map(ex => ex.subGrupo))].filter(Boolean);
 
-                if (subGruposDoGrupo.length > 1) {
-                    shuffleArray(subGruposDoGrupo);
-                    for (const subGrupo of subGruposDoGrupo) {
-                        const exerciciosSubGrupo = exerciciosDoGrupo.filter(ex => ex.subGrupo === subGrupo);
-                        if (exerciciosSubGrupo.length > 0) {
-                            const exAleatorio = exerciciosSubGrupo[Math.floor(Math.random() * exerciciosSubGrupo.length)];
-                            if (!exerciciosAdicionados.some(e => e.nome === exAleatorio.nome)) {
-                                exerciciosAdicionados.push(exAleatorio);
-                            }
-                        }
+                if (grupo === "Costas") {
+                    const puxadaVertical = exerciciosDisponiveis.filter(ex => ex.estilo === "Puxada Vertical");
+                    const puxadaHorizontal = exerciciosDisponiveis.filter(ex => ex.estilo === "Puxada Horizontal");
+                    
+                    if (puxadaVertical.length > 0) {
+                        shuffleArray(puxadaVertical);
+                        exerciciosAdicionados.push(puxadaVertical[0]);
                     }
+                    if (puxadaHorizontal.length > 0) {
+                        shuffleArray(puxadaHorizontal);
+                        exerciciosAdicionados.push(puxadaHorizontal[0]);
+                    }
+                    
+                    // Adiciona o restante até o número desejado, evitando redundância
+                    const restantes = exerciciosDisponiveis.filter(ex => 
+                        !exerciciosAdicionados.some(addEx => 
+                            addEx.nome === ex.nome || (addEx.estilo === ex.estilo && addEx.subGrupo === ex.subGrupo)
+                        )
+                    );
+                    shuffleArray(restantes);
+                    exerciciosAdicionados = exerciciosAdicionados.concat(restantes.slice(0, numParaAdicionar - exerciciosAdicionados.length));
+
+                } else {
+                    let estilosJaUsados = new Set();
+                    let subGruposJaUsados = new Set();
+
+                    const subGruposDoGrupo = [...new Set(exerciciosDoGrupo.map(ex => ex.subGrupo))].filter(Boolean);
+                    if (subGruposDoGrupo.length > 1) {
+                         shuffleArray(subGruposDoGrupo);
+                         for (const subGrupo of subGruposDoGrupo) {
+                             const exerciciosSubGrupo = exerciciosDisponiveis.filter(ex => ex.subGrupo === subGrupo);
+                             if (exerciciosSubGrupo.length > 0) {
+                                 const exAleatorio = exerciciosSubGrupo[Math.floor(Math.random() * exerciciosSubGrupo.length)];
+                                 if (!exerciciosAdicionados.some(e => e.nome === exAleatorio.nome)) {
+                                     exerciciosAdicionados.push(exAleatorio);
+                                     estilosJaUsados.add(exAleatorio.estilo);
+                                     subGruposJaUsados.add(exAleatorio.subGrupo);
+                                 }
+                             }
+                         }
+                    }
+
+                    // Adiciona mais exercícios, evitando redundância de estilo/subgrupo
+                    const restantes = exerciciosDisponiveis.filter(ex => {
+                        const isSimilar = exerciciosAdicionados.some(addEx => 
+                           addEx.estilo === ex.estilo && addEx.subGrupo === ex.subGrupo
+                        );
+                        return !isSimilar;
+                    });
+
+                    shuffleArray(restantes);
+                    exerciciosAdicionados = exerciciosAdicionados.concat(restantes.slice(0, numParaAdicionar - exerciciosAdicionados.length));
                 }
 
-                // Adiciona mais exercícios se necessário, priorizando estilos diferentes
-                let estilosUtilizados = new Set(exerciciosAdicionados.map(e => e.estilo));
-                const exerciciosDisponiveisRestantes = exerciciosDoGrupo.filter(ex => !exerciciosAdicionados.some(e => e.nome === ex.nome));
+                // Garante que o número final não ultrapasse o máximo permitido
+                if (exerciciosAdicionados.length > numParaAdicionar) {
+                    exerciciosAdicionados = exerciciosAdicionados.slice(0, numParaAdicionar);
+                }
                 
-                shuffleArray(exerciciosDisponiveisRestantes);
-                for (const ex of exerciciosDisponiveisRestantes) {
-                    if (exerciciosAdicionados.length >= numParaAdicionar) break;
-                    if (!estilosUtilizados.has(ex.estilo) || exerciciosAdicionados.length < numParaAdicionar) {
-                        exerciciosAdicionados.push(ex);
-                        estilosUtilizados.add(ex.estilo);
-                    }
-                }
-
-                shuffleArray(exerciciosAdicionados);
-                exerciciosSelecionados = exerciciosSelecionados.concat(exerciciosAdicionados.slice(0, numParaAdicionar));
-                totalExercicios += exerciciosAdicionados.length;
+                exerciciosSelecionados = exerciciosSelecionados.concat(exerciciosAdicionados);
             }
             
-            // Ordena os exercícios na lista final pela ordem dos grupos selecionados
             exerciciosSelecionados.sort((a, b) => {
                 return grupos_musculares.indexOf(a.grupoMuscular) - grupos_musculares.indexOf(b.grupoMuscular);
             });
@@ -809,7 +831,6 @@
                         
                         const treinoDoDia = gerarTreinoAutomatico(dificuldade, gruposMusculares);
                         
-                        // Validação da quantidade total de exercícios
                         const totalExs = treinoDoDia.length;
                         const limites = LIMITES_TREINO_TOTAL[dificuldade];
                         if (totalExs < limites.min || totalExs > limites.max) {
