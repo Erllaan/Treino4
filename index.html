@@ -529,7 +529,7 @@
                 
                 // Filtra exercícios que já foram selecionados ou que são variações do mesmo movimento
                 const exerciciosJaUsados = new Set(exerciciosSelecionados.map(ex => ex.nome));
-                const exerciciosDisponiveis = exerciciosDoGrupo.filter(ex => !exerciciosJaUsados.has(ex.nome));
+                let exerciciosDisponiveis = exerciciosDoGrupo.filter(ex => !exerciciosJaUsados.has(ex.nome));
 
                 let exerciciosAdicionados = [];
 
@@ -588,9 +588,7 @@
                 }
 
                 // Garante que o número final não ultrapasse o máximo permitido
-                if (exerciciosAdicionados.length > numParaAdicionar) {
-                    exerciciosAdicionados = exerciciosAdicionados.slice(0, numParaAdicionar);
-                }
+                exerciciosAdicionados = exerciciosAdicionados.slice(0, numParaAdicionar);
                 
                 exerciciosSelecionados = exerciciosSelecionados.concat(exerciciosAdicionados);
             }
@@ -814,52 +812,44 @@
                     return;
                 }
 
-                try {
-                    diasTreino.forEach((dia, index) => {
-                        let nomeDia = dia.querySelector('input[type="text"]').value;
-                        if (!nomeDia) {
-                            nomeDia = `Treino ${String.fromCharCode(65 + index)}`;
-                        }
-
-                        const gruposMusculares = Array.from(dia.querySelectorAll('input[name^="grupos_dia_"]:checked'))
-                                                     .map(checkbox => checkbox.value);
-                        
-                        if (gruposMusculares.length === 0) {
-                             alert(`Por favor, selecione pelo menos um grupo muscular para o treino "${nomeDia}".`);
-                             throw new Error("Grupos musculares não selecionados.");
-                        }
-                        
-                        const treinoDoDia = gerarTreinoAutomatico(dificuldade, gruposMusculares);
-                        
-                        const totalExs = treinoDoDia.length;
-                        const limites = LIMITES_TREINO_TOTAL[dificuldade];
-                        if (totalExs < limites.min || totalExs > limites.max) {
-                            alert(`O treino "${nomeDia}" com ${totalExs} exercícios não está dentro da faixa de ${limites.min} a ${limites.max} para o nível ${dificuldade}. Por favor, ajuste os grupos musculares selecionados.`);
-                            throw new Error("Quantidade de exercícios fora do limite.");
-                        }
-
-                        treinoSemanal.push({
-                            nome_dia: nomeDia,
-                            grupos_musculares: gruposMusculares,
-                            treino: treinoDoDia
-                        });
-                    });
-                } catch (e) {
-                    if (e.message.includes("Grupos musculares não selecionados.") || e.message.includes("Quantidade de exercícios fora do limite.")) {
-                       return;
-                    } else {
-                       throw e;
+                diasTreino.forEach((dia, index) => {
+                    let nomeDia = dia.querySelector('input[type="text"]').value;
+                    if (!nomeDia) {
+                        nomeDia = `Treino ${String.fromCharCode(65 + index)}`;
                     }
-                }
-                
 
-                const dadosGerais = {
-                    nome_aluno,
-                    dificuldade,
-                    objetivo
-                };
+                    const gruposMusculares = Array.from(dia.querySelectorAll('input[name^="grupos_dia_"]:checked'))
+                                                 .map(checkbox => checkbox.value);
+                    
+                    if (gruposMusculares.length === 0) {
+                         alert(`Por favor, selecione pelo menos um grupo muscular para o treino "${nomeDia}".`);
+                         return;
+                    }
+                    
+                    const treinoDoDia = gerarTreinoAutomatico(dificuldade, gruposMusculares);
+                    
+                    const totalExs = treinoDoDia.length;
+                    const limites = LIMITES_TREINO_TOTAL[dificuldade];
+                    if (totalExs < limites.min || totalExs > limites.max) {
+                        console.warn(`[AVISO] O treino "${nomeDia}" com ${totalExs} exercícios não está dentro da faixa de ${limites.min} a ${limites.max} para o nível ${dificuldade}.`);
+                    }
+
+                    treinoSemanal.push({
+                        nome_dia: nomeDia,
+                        grupos_musculares: gruposMusculares,
+                        treino: treinoDoDia
+                    });
+                });
                 
-                gerarPdfTreinoSemanal(treinoSemanal, dadosGerais, incluir_descricao, dadosNutricionais);
+                if (treinoSemanal.length > 0 && !treinoSemanal.find(dia => dia.treino.length === 0)) {
+                    const dadosGerais = {
+                        nome_aluno,
+                        dificuldade,
+                        objetivo
+                    };
+                    
+                    gerarPdfTreinoSemanal(treinoSemanal, dadosGerais, incluir_descricao, dadosNutricionais);
+                }
             });
         };
     </script>
