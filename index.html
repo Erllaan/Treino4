@@ -518,78 +518,44 @@
                     numParaAdicionar = Math.min(limites.max, Math.max(limites.min, Math.floor(Math.random() * (limites.max - limites.min + 1)) + limites.min));
                 } else {
                     const subGrupos = [...new Set(exerciciosDoGrupo.map(ex => ex.subGrupo))].filter(Boolean);
-                    if (subGrupos.length > 0) {
-                        numParaAdicionar = subGrupos.length + (dificuldade === "Iniciante" ? 0 : 1);
-                    } else {
-                        numParaAdicionar = Math.min(exerciciosDoGrupo.length, 
-                                            Math.max(limitesNivel.min, 
-                                            Math.floor(Math.random() * (limitesNivel.max - limitesNivel.min + 1)) + limitesNivel.min));
-                    }
+                    numParaAdicionar = subGrupos.length > 1 ? subGrupos.length + (dificuldade === "Iniciante" ? 0 : 1) : Math.min(exerciciosDoGrupo.length, limitesNivel.min + Math.floor(Math.random() * (limitesNivel.max - limitesNivel.min + 1)));
                 }
+
+                // Evitar exercícios repetidos no mesmo treino
+                const exerciciosJaUsadosNesteTreino = new Set(exerciciosSelecionados.map(ex => ex.nome));
+                let exerciciosDisponiveis = exerciciosDoGrupo.filter(ex => !exerciciosJaUsadosNesteTreino.has(ex.nome));
                 
-                // Filtra exercícios que já foram selecionados ou que são variações do mesmo movimento
-                const exerciciosJaUsados = new Set(exerciciosSelecionados.map(ex => ex.nome));
-                let exerciciosDisponiveis = exerciciosDoGrupo.filter(ex => !exerciciosJaUsados.has(ex.nome));
+                shuffleArray(exerciciosDisponiveis);
 
                 let exerciciosAdicionados = [];
-
-                if (grupo === "Costas") {
-                    const puxadaVertical = exerciciosDisponiveis.filter(ex => ex.estilo === "Puxada Vertical");
-                    const puxadaHorizontal = exerciciosDisponiveis.filter(ex => ex.estilo === "Puxada Horizontal");
+                let subGruposAdicionados = new Set();
+                let estilosAdicionados = new Set();
+                
+                // Prioriza selecionar exercícios que trabalham subgrupos ou estilos diferentes
+                for (const exercicio of exerciciosDisponiveis) {
+                    const isSubGrupoDuplicado = exercicio.subGrupo && subGruposAdicionados.has(exercicio.subGrupo);
+                    const isEstiloDuplicado = exercicio.estilo && estilosAdicionados.has(exercicio.estilo);
                     
-                    if (puxadaVertical.length > 0) {
-                        shuffleArray(puxadaVertical);
-                        exerciciosAdicionados.push(puxadaVertical[0]);
+                    if (!isSubGrupoDuplicado && !isEstiloDuplicado && exerciciosAdicionados.length < numParaAdicionar) {
+                        exerciciosAdicionados.push(exercicio);
+                        if (exercicio.subGrupo) subGruposAdicionados.add(exercicio.subGrupo);
+                        if (exercicio.estilo) estilosAdicionados.add(exercicio.estilo);
                     }
-                    if (puxadaHorizontal.length > 0) {
-                        shuffleArray(puxadaHorizontal);
-                        exerciciosAdicionados.push(puxadaHorizontal[0]);
-                    }
-                    
-                    // Adiciona o restante até o número desejado, evitando redundância
-                    const restantes = exerciciosDisponiveis.filter(ex => 
-                        !exerciciosAdicionados.some(addEx => 
-                            addEx.nome === ex.nome || (addEx.estilo === ex.estilo && addEx.subGrupo === ex.subGrupo)
-                        )
-                    );
-                    shuffleArray(restantes);
-                    exerciciosAdicionados = exerciciosAdicionados.concat(restantes.slice(0, numParaAdicionar - exerciciosAdicionados.length));
-
-                } else {
-                    let estilosJaUsados = new Set();
-                    let subGruposJaUsados = new Set();
-
-                    const subGruposDoGrupo = [...new Set(exerciciosDoGrupo.map(ex => ex.subGrupo))].filter(Boolean);
-                    if (subGruposDoGrupo.length > 1) {
-                         shuffleArray(subGruposDoGrupo);
-                         for (const subGrupo of subGruposDoGrupo) {
-                             const exerciciosSubGrupo = exerciciosDisponiveis.filter(ex => ex.subGrupo === subGrupo);
-                             if (exerciciosSubGrupo.length > 0) {
-                                 const exAleatorio = exerciciosSubGrupo[Math.floor(Math.random() * exerciciosSubGrupo.length)];
-                                 if (!exerciciosAdicionados.some(e => e.nome === exAleatorio.nome)) {
-                                     exerciciosAdicionados.push(exAleatorio);
-                                     estilosJaUsados.add(exAleatorio.estilo);
-                                     subGruposJaUsados.add(exAleatorio.subGrupo);
-                                 }
-                             }
-                         }
-                    }
-
-                    // Adiciona mais exercícios, evitando redundância de estilo/subgrupo
-                    const restantes = exerciciosDisponiveis.filter(ex => {
-                        const isSimilar = exerciciosAdicionados.some(addEx => 
-                           addEx.estilo === ex.estilo && addEx.subGrupo === ex.subGrupo
-                        );
-                        return !isSimilar;
-                    });
-
-                    shuffleArray(restantes);
-                    exerciciosAdicionados = exerciciosAdicionados.concat(restantes.slice(0, numParaAdicionar - exerciciosAdicionados.length));
+                }
+                
+                // Se ainda precisar de mais exercícios, adicione os restantes
+                const restantes = exerciciosDisponiveis.filter(ex => 
+                    !exerciciosAdicionados.some(addEx => addEx.nome === ex.nome)
+                );
+                
+                for(const exercicio of restantes) {
+                     if (exerciciosAdicionados.length < numParaAdicionar) {
+                         exerciciosAdicionados.push(exercicio);
+                     } else {
+                         break;
+                     }
                 }
 
-                // Garante que o número final não ultrapasse o máximo permitido
-                exerciciosAdicionados = exerciciosAdicionados.slice(0, numParaAdicionar);
-                
                 exerciciosSelecionados = exerciciosSelecionados.concat(exerciciosAdicionados);
             }
             
@@ -597,7 +563,7 @@
                 return grupos_musculares.indexOf(a.grupoMuscular) - grupos_musculares.indexOf(b.grupoMuscular);
             });
             
-            return exerciciosSelecionados;
+            return exerciciosSelecionados.slice(0, limitesNivel.max);
         }
 
         function calcularIMC(peso, altura) {
