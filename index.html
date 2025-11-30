@@ -1767,7 +1767,7 @@
                     if (exercises.size === 0) return "";
 
                     const exerciseList = Array.from(exercises).join(', ');
-                    return `\n- **Histórico de Exercícios Recentes (EVITAR REPETIR):** ${exerciseList}`;
+                    return `\n- **Histórico de Exercícios Recentes (para variar a seleção):** ${exerciseList}`;
 
                 } catch (error) {
                     console.error("Erro ao buscar histórico de exercícios:", error);
@@ -1806,8 +1806,9 @@
 - **Cardio:** Para CADA dia de treino, adicione uma sugestão de cardio no campo "cardio".
 - **Coesão Muscular:** Todos os exercícios de um dia devem pertencer aos grupos musculares definidos para esse dia.
 - **Ordem Inteligente:** Comece com exercícios compostos, depois isolados. Agrupe por músculo. Abdômen no final.
-- **Exercícios Reais:** Use nomes de exercícios comuns de academia.
-- **Evitar Repetição:** Priorize exercícios que NÃO ESTÃO no histórico fornecido.
+- **Exercícios Reais e Comuns:** Use **apenas nomes de exercícios comuns**, básicos e amplamente conhecidos de academia (Ex: Agachamento, Supino, Rosca Direta). **É proibido usar nomenclaturas regionais, complexas ou obscuras.**
+- **Variação e Repetição:** Garanta que o treino seja perfeitamente otimizado para o objetivo e nível do aluno. **Você PODE e DEVE repetir exercícios básicos** que são essenciais (como Agachamento, Leg Press), mas **priorize 30-40% de novos exercícios** ou variações (mudança de aparelho, pegada, ou ordem) para garantir progresso e evitar monotonia.
+- **Restrição de Gênero (MASCULINO):** Se o `genero` nos Dados do Aluno for **"Masculino"**, é estritamente **proibido** incluir exercícios de isolamento excessivo para glúteos, como **"Coice no Cabo"**, "Elevação Pélvica" ou "Abdução/Adução na Máquina" se não forem essenciais ao objetivo. Priorize exercícios de perna mais funcionais e compostos (Agachamento, Leg Press, Stiff, Cadeira Extensora, Flexora, Levantamento Terra, etc.).
 
 ## Dados do Aluno:
 - Aluno(a): "${appState.alunoSelecionado.nome}", Sexo: ${appState.alunoSelecionado.sexo}, Idade: ${appState.alunoSelecionado.idade} anos
@@ -1869,7 +1870,7 @@
                 
                 try {
                     const apiKey = appState.apiKey;
-                    // Linha Corrigida: modelo alterado de 'gemini-2.5-flash-preview-05-20' para 'gemini-2.5-flash'
+                    // CORREÇÃO DA API AQUI: alterado para o modelo estável 'gemini-2.5-flash'
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const payload = { 
                         contents: [{ role: "user", parts: [{ text: prompt }] }], 
