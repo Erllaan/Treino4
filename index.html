@@ -294,7 +294,7 @@
 
                 <button id="btnGerarComIA" type="button" class="w-full py-4 text-xl bg-btn-primary text-white rounded-lg font-semibold transition-opacity duration-300">
                     <span class="flex items-center justify-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Gerar Treino com IA
                     </span>
                 </button>
@@ -1747,7 +1747,8 @@
 
                 try {
                     const treinosRef = collection(db, "usuarios", appState.currentUser.uid, "alunos", alunoId, "treinos");
-                    const q = query(treinosRef, orderBy("criadoEm", "desc"), limit(2));
+                    // CORREÇÃO APLICADA: Limitado a apenas o último treino (limit(1))
+                    const q = query(treinosRef, orderBy("criadoEm", "desc"), limit(1)); 
                     const querySnapshot = await getDocs(q);
 
                     if (querySnapshot.empty) return "";
@@ -1767,7 +1768,8 @@
                     if (exercises.size === 0) return "";
 
                     const exerciseList = Array.from(exercises).join(', ');
-                    return `\n- **Histórico de Exercícios Recentes (para variar a seleção):** ${exerciseList}`;
+                    // MENSAGEM CORRIGIDA PARA PERMITIR REPETIÇÃO COM RESTRIÇÃO DE VARIEDADE
+                    return `\n- **Histórico de Exercícios do Último Treino (Repetição Permitida, mas priorizar variedade para não ficar idêntico):** ${exerciseList}`;
 
                 } catch (error) {
                     console.error("Erro ao buscar histórico de exercícios:", error);
@@ -1806,10 +1808,8 @@
 - **Cardio:** Para CADA dia de treino, adicione uma sugestão de cardio no campo "cardio".
 - **Coesão Muscular:** Todos os exercícios de um dia devem pertencer aos grupos musculares definidos para esse dia.
 - **Ordem Inteligente:** Comece com exercícios compostos, depois isolados. Agrupe por músculo. Abdômen no final.
-- **Exercícios Reais e Comuns:** Use **apenas nomes de exercícios comuns**, básicos e amplamente conhecidos de academia (Ex: Agachamento, Supino, Rosca Direta). **É proibido usar nomenclaturas regionais, complexas ou obscuras.**
-- **Variação e Repetição:** Garanta que o treino seja perfeitamente otimizado para o objetivo e nível do aluno. **Você PODE e DEVE repetir exercícios básicos** que são essenciais (como Agachamento, Leg Press), mas **priorize 30-40% de novos exercícios** ou variações (mudança de aparelho, pegada, ou ordem) para garantir progresso e evitar monotonia.
-- **Restrição de Gênero (MASCULINO):** Se o `genero` nos Dados do Aluno for **"Masculino"**, é estritamente **proibido** incluir exercícios de isolamento excessivo para glúteos, como **"Coice no Cabo"**, "Elevação Pélvica" ou "Abdução/Adução na Máquina" se não forem essenciais ao objetivo. Priorize exercícios de perna mais funcionais e compostos (Agachamento, Leg Press, Stiff, Cadeira Extensora, Flexora, Levantamento Terra, etc.).
-
+- **Exercícios Reais:** Use nomes de exercícios comuns de academia.
+                
 ## Dados do Aluno:
 - Aluno(a): "${appState.alunoSelecionado.nome}", Sexo: ${appState.alunoSelecionado.sexo}, Idade: ${appState.alunoSelecionado.idade} anos
 - Nível: ${dificuldadeSelect.value}
@@ -1824,7 +1824,8 @@
 - As seguintes instruções do treinador TÊM PRIORIDADE MÁXIMA sobre todas as outras regras. Cumpra-as exatamente como descrito:
 - "${observacoesIA}"`;
                 }
-
+                
+                // A linha de "Evitar Repetição" foi removida daqui, e a restrição de variedade foi suavizada no `exerciseHistory`
                 if (exerciseHistory) { prompt += exerciseHistory; }
                 if (duracaoTreino !== 'N/A') { prompt += `\n- Duração Máxima: ${duracaoTreino}.`; }
                 if (treinoEmCasa) { prompt += `\n- Local: Treino em casa (apenas peso corporal).`; }
@@ -1870,7 +1871,7 @@
                 
                 try {
                     const apiKey = appState.apiKey;
-                    // CORREÇÃO DA API AQUI: alterado para o modelo estável 'gemini-2.5-flash'
+                    // Modelo atualizado para 'gemini-2.5-flash'
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const payload = { 
                         contents: [{ role: "user", parts: [{ text: prompt }] }], 
@@ -2966,7 +2967,7 @@
                     { nome: "Coice na Polia (Glute Kickback)", grupoMuscular: "Glúteos" }, { nome: "Coice na Máquina (Glute Machine)", grupoMuscular: "Glúteos" },
                     { nome: "Cadeira Abdutora (com tronco inclinado à frente)", grupoMuscular: "Glúteos" }, { nome: "Abdução de Quadril na Polia Baixa (em pé)", grupoMuscular: "Glúteos" },
                     { nome: "Abdução de Quadril Deitado com Caneleira", grupoMuscular: "Glúteos" }, { nome: "Levantamento Terra Sumô", grupoMuscular: "Glúteos" },
-                    { nome: "Afundo Reverso Cruzado (Curtsy Lunge)", grupoMuscular: "Glúteos" }, { nome: "Step-up no Caixote (foco no glúteo)", grupoMuscular: "Glúteos" },
+                    { nome: "Afundo Reverso Cruzado (Curtsy Lunge)", grupoMuscular: "Glúteos" }, { nome: "Step-up no Caixote com Halteres", grupoMuscular: "Glúteos" },
                     { nome: "Frog Pump (Ponte Sapo)", grupoMuscular: "Glúteos" }, { nome: "Hidrante (Fire Hydrant) com caneleira ou faixa", grupoMuscular: "Glúteos" },
                     { nome: "Clamshell com faixa de resistência", grupoMuscular: "Glúteos" }, { nome: "Hiperextensão Reversa", grupoMuscular: "Glúteos" },
                     { nome: "Elevação Pélvica Unilateral", grupoMuscular: "Glúteos" }, { nome: "Kas Glute Bridge (variação da Elevação Pélvica)", grupoMuscular: "Glúteos" },
